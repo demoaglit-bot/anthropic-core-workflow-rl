@@ -1,34 +1,45 @@
 # Anthropic Core Workflow RL Environment
 
-This delivery bootstraps a production-oriented RL environment for Anthropic's core workflow. The environment models a chat-oriented task loop with seeded conversations, restorable state transitions, and an OpenAPI-defined backend surface.
+This delivery bootstraps a local RL environment that models a focused slice of Anthropic's core workflow: review tasks in a queue, inspect task context, draft a response, submit it, and reset the environment to a seeded state.
 
-## Stack
+## Scope
 
-- Python 3 standard library HTTP server
-- Static HTML, CSS, and JavaScript frontend
-- JSON file-backed seeded environment state
-- OpenAPI contract in `api/openapi.yaml`
+- Queue view of seeded tasks
+- Detail view for a selected task
+- Draft and submit response flow
+- Deterministic reset to the original seeded state
+- HTTP JSON API defined in `api/openapi.yaml`
 
 ## Local Run
 
 ```bash
-python3 app.py
+PORT=8016 python3 app.py
 ```
 
-Then open `http://127.0.0.1:8000`.
+Then open `http://127.0.0.1:8016`.
 
-## Current Slice
+## API Surface
 
-- Conversation list view
-- Thread detail view
-- Draft editing and send transition
-- Reset to seeded baseline
-- Environment event log and reward hints
+- `GET /api/state`
+- `GET /api/episode`
+- `GET /api/tasks`
+- `GET /api/tasks/{task_id}`
+- `POST /api/tasks/{task_id}/draft`
+- `POST /api/tasks/{task_id}/submit`
+- `POST /api/reset`
 
-## Project Layout
+## Delivery Notes
 
-- `app.py`: local server and API implementation
-- `static/`: UI assets
-- `data/seed_state.json`: seeded restorable environment state
-- `api/openapi.yaml`: API contract
-- `AGENTS.md`: delivery-specific operating instructions
+This is the bootstrap baseline for the full delivery. It is intentionally dependency-light so it can run on a machine without Node tooling.
+
+## Deploy
+
+- Local server: `app.py`
+- Vercel entrypoint: `api/index.py`
+- Routing: `vercel.json`
+
+## RL Notes
+
+- Observation space: environment metadata, queue state, selected task detail, transition log
+- Action space: inspect queue, inspect task, save draft, submit task, reset episode
+- Reward hints: positive reward for useful progression, penalty for invalid submission

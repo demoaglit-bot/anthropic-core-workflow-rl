@@ -3,74 +3,95 @@ info:
   title: Anthropic Core Workflow RL Environment API
   version: 0.1.0
   description: |
-    OpenAPI-owned API for a restorable RL environment that models Anthropic's core chat workflow.
+    Dependency-light local API for a seeded RL environment modeling a task
+    triage, drafting, submission, and reset workflow.
 servers:
-  - url: http://127.0.0.1:8000
+  - url: http://127.0.0.1:8016
 paths:
   /api/state:
     get:
-      summary: Get the current environment state.
+      summary: Return full environment state
       operationId: getState
       responses:
-        '200':
-          description: Current state.
-  /api/reset:
-    post:
-      summary: Reset the runtime state to the seeded baseline.
-      operationId: resetState
+        "200":
+          description: Current state
+  /api/tasks:
+    get:
+      summary: List all seeded tasks
+      operationId: listTasks
       responses:
-        '200':
-          description: Reset state.
-  /api/save-draft:
+        "200":
+          description: Task list
+  /api/tasks/{task_id}:
+    get:
+      summary: Get one task
+      operationId: getTask
+      parameters:
+        - in: path
+          name: task_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Task detail
+        "404":
+          description: Task not found
+  /api/tasks/{task_id}/draft:
     post:
-      summary: Save a draft on a thread.
+      summary: Save a draft response
       operationId: saveDraft
+      parameters:
+        - in: path
+          name: task_id
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [threadId, draft]
+              required: [draft]
               properties:
-                threadId:
-                  type: string
                 draft:
                   type: string
       responses:
-        '200':
-          description: Updated state.
-  /api/send-reply:
+        "200":
+          description: Updated task
+        "400":
+          description: Invalid draft
+        "404":
+          description: Task not found
+  /api/tasks/{task_id}/submit:
     post:
-      summary: Send a reply into a thread.
-      operationId: sendReply
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [threadId, message]
-              properties:
-                threadId:
-                  type: string
-                message:
-                  type: string
+      summary: Submit the current draft as a final response
+      operationId: submitTask
+      parameters:
+        - in: path
+          name: task_id
+          required: true
+          schema:
+            type: string
       responses:
-        '200':
-          description: Updated state.
-components:
-  schemas:
-    EnvironmentState:
-      type: object
-      properties:
-        persona:
-          type: object
-        threads:
-          type: array
-          items:
-            type: object
-        events:
-          type: array
-          items:
-            type: object
+        "200":
+          description: Submitted task
+        "400":
+          description: Missing draft
+        "404":
+          description: Task not found
+  /api/episode:
+    get:
+      summary: Return RL-facing observation and episode metadata
+      operationId: getEpisode
+      responses:
+        "200":
+          description: Observation, target task, reward profile, and transition history
+  /api/reset:
+    post:
+      summary: Restore the original seeded state
+      operationId: resetState
+      responses:
+        "200":
+          description: Reset complete
