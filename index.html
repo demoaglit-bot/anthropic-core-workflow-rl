@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anthropic Core Workflow RL Environment</title>
+  <style>
+    :root { color-scheme: light; --bg: #f4efe7; --panel: #fff9f2; --ink: #1e1b18; --accent: #be5b2d; --muted: #6d655d; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Georgia, serif; background: radial-gradient(circle at top, #fff4df, var(--bg) 55%); color: var(--ink); }
+    header { padding: 24px 28px 12px; }
+    h1 { margin: 0 0 8px; font-size: 32px; }
+    p { margin: 0; color: var(--muted); }
+    main { display: grid; grid-template-columns: 360px 1fr; gap: 18px; padding: 18px 28px 28px; }
+    .panel { background: var(--panel); border: 1px solid #eadac6; border-radius: 18px; padding: 18px; box-shadow: 0 12px 30px rgba(78, 49, 26, 0.08); }
+    .task { border: 1px solid #eadac6; border-radius: 14px; padding: 12px; margin-bottom: 10px; cursor: pointer; }
+    .task.active { border-color: var(--accent); background: #fff2e8; }
+    .meta { font-size: 13px; color: var(--muted); }
+    textarea { width: 100%; min-height: 180px; border-radius: 12px; border: 1px solid #d9c2ab; padding: 12px; font: inherit; }
+    button { background: var(--ink); color: white; border: 0; border-radius: 999px; padding: 10px 16px; margin-right: 8px; cursor: pointer; }
+    button.secondary { background: #e9d3bf; color: var(--ink); }
+    #timeline { max-height: 240px; overflow: auto; padding-left: 18px; }
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; padding: 16px; }
+      header { padding: 18px 16px 4px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Anthropic Core Workflow RL Environment</h1>
+    <p>Seeded queue triage, draft writing, submission, and deterministic reset.</p>
+  </header>
+  <main>
+    <section class="panel">
+      <h2>Queue</h2>
+      <div id="queue"></div>
+      <button class="secondary" id="reset-button">Reset Environment</button>
+    </section>
+    <section class="panel">
+      <div id="detail"></div>
+      <h3>Timeline</h3>
+      <ol id="timeline"></ol>
+    </section>
+  </main>
+  <script>
+    const seedState = {
+      environment: {
+        id: "anthropic-core-workflow-rl",
+        name: "Anthropic Core Workflow RL Environment",
+        defaultTarget: "Anthropic core workflow",
+        seedVersion: "2026-04-15"
+      },
+      tasks: [
+        {
+          id: "task-queue-triage",
+          title: "Triage a high-priority policy question",
+          status: "queued",
+          userObjective: "Decide whether the request can be answered safely and draft the reply.",
+          context: "The user asks for policy-compliant guidance with ambiguous edge cases.",
+          failureMode: "Submit without addressing the ambiguity.",
+          rewardHint: 0.82,
+          draft: ""
+        },
+        {
+          id: "task-spec-review",
+          title: "Review an RL environment specification",
+          status: "queued",
+          userObjective: "Identify missing restore semantics and propose concrete fixes.",
+          context: "The spec has endpoints but incomplete reset behavior.",
+          failureMode: "Approve the spec without reset coverage.",
+          rewardHint: 0.74,
+          draft: ""
+        },
+        {
+          id: "task-eval-audit",
+          title: "Audit a failed evaluation run",
+          status: "queued",
+          userObjective: "Explain the likely cause and suggest a minimal repair.",
+          context: "A seeded task produced a regression after a state mutation.",
+          failureMode: "Ignore the timeline evidence.",
+          rewardHint: 0.69,
+          draft: ""
+        }
+      ],
+      timeline: [
+        {
+          at: "2026-04-15T16:00:00+00:00",
+          taskId: "system",
+          action: "seed_loaded",
+          payload: { tasks: 3 }
+        }
+      ]
+    };
+
+    let state = JSON.parse(JSON.stringify(seedState));
+    let selectedTaskId = state.tasks[0].id;
+
+    function nowIso() {
+      return new Date().toISOString();
+    }
+
+    function recordEvent(taskId, action, payload = {}) {
+      state.timeline.unshift({ at: nowIso(), taskId, action, payload });
+    }
+
+    function taskById(taskId) {
+      return state.tasks.find(task => task.id === taskId);
+    }
+
+    function renderQueue() {
+      const queue = document.getElementById("queue");
+      queue.innerHTML = state.tasks.map(task => `
+        <div class="task ${task.id === selectedTaskId ? "active" : ""}" data-task-id="${task.id}">
+          <strong>${task.title}</strong>
+          <div class="meta">${task.status} • reward hint ${task.rewardHint}</div>
+          <div class="meta">${task.userObjective}</div>
+        </div>
+      `).join("");
+      queue.querySelectorAll(".task").forEach(node => {
+        node.addEventListener("click", () => {
+          selectedTaskId = node.dataset.taskId;
+          render();
+        });
+      });
+    }
+
+    function renderDetail() {
+      const task = taskById(selectedTaskId);
+      const detail = document.getElementById("detail");
+      detail.innerHTML = `
+        <h2>${task.title}</h2>
+        <p><strong>Status:</strong> ${task.status}</p>
+        <p><strong>User objective:</strong> ${task.userObjective}</p>
+        <p><strong>Failure mode:</strong> ${task.failureMode}</p>
+        <p><strong>Context:</strong> ${task.context}</p>
+        <textarea id="draft">${task.draft || ""}</textarea>
+        <div style="margin-top: 12px;">
+          <button id="claim-button">Claim</button>
+          <button id="save-button">Save Draft</button>
+          <button id="submit-button">Submit</button>
+        </div>
+      `;
+
+      detail.querySelector("#claim-button").addEventListener("click", () => {
+        if (task.status !== "queued") return;
+        task.status = "claimed";
+        recordEvent(task.id, "claim");
+        render();
+      });
+
+      detail.querySelector("#save-button").addEventListener("click", () => {
+        if (!["claimed", "drafting"].includes(task.status)) return;
+        task.status = "drafting";
+        task.draft = detail.querySelector("#draft").value;
+        recordEvent(task.id, "save_draft", { chars: task.draft.length });
+        render();
+      });
+
+      detail.querySelector("#submit-button").addEventListener("click", () => {
+        if (task.status !== "drafting" || !task.draft.trim()) return;
+        task.status = "submitted";
+        task.submittedAt = nowIso();
+        recordEvent(task.id, "submit", { draft: task.draft });
+        render();
+      });
+    }
+
+    function renderTimeline() {
+      document.getElementById("timeline").innerHTML = state.timeline.map(event => `
+        <li><strong>${event.action}</strong> <span class="meta">${event.taskId} at ${event.at}</span></li>
+      `).join("");
+    }
+
+    function render() {
+      renderQueue();
+      renderDetail();
+      renderTimeline();
+    }
+
+    document.getElementById("reset-button").addEventListener("click", () => {
+      state = JSON.parse(JSON.stringify(seedState));
+      selectedTaskId = state.tasks[0].id;
+      recordEvent("system", "reset", { reason: "manual" });
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

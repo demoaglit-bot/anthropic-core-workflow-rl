@@ -1,0 +1,76 @@
+openapi: 3.1.0
+info:
+  title: Anthropic Core Workflow RL Environment API
+  version: 0.1.0
+  description: |
+    OpenAPI-owned API for a restorable RL environment that models Anthropic's core chat workflow.
+servers:
+  - url: http://127.0.0.1:8000
+paths:
+  /api/state:
+    get:
+      summary: Get the current environment state.
+      operationId: getState
+      responses:
+        '200':
+          description: Current state.
+  /api/reset:
+    post:
+      summary: Reset the runtime state to the seeded baseline.
+      operationId: resetState
+      responses:
+        '200':
+          description: Reset state.
+  /api/save-draft:
+    post:
+      summary: Save a draft on a thread.
+      operationId: saveDraft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [threadId, draft]
+              properties:
+                threadId:
+                  type: string
+                draft:
+                  type: string
+      responses:
+        '200':
+          description: Updated state.
+  /api/send-reply:
+    post:
+      summary: Send a reply into a thread.
+      operationId: sendReply
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [threadId, message]
+              properties:
+                threadId:
+                  type: string
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Updated state.
+components:
+  schemas:
+    EnvironmentState:
+      type: object
+      properties:
+        persona:
+          type: object
+        threads:
+          type: array
+          items:
+            type: object
+        events:
+          type: array
+          items:
+            type: object

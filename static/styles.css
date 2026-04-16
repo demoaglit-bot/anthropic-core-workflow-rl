@@ -1,0 +1,96 @@
+:root {
+  color-scheme: light;
+  --bg: #f3efe6;
+  --panel: #fff9f0;
+  --line: #d7c8aa;
+  --text: #1b1710;
+  --accent: #9b4d2f;
+  --accent-soft: #ecd1bc;
+}
+body {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  background: radial-gradient(circle at top, #fff8ef, var(--bg));
+  color: var(--text);
+}
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  min-height: 100vh;
+  gap: 16px;
+  padding: 16px;
+}
+.panel {
+  background: rgba(255, 249, 240, 0.96);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 12px 32px rgba(84, 53, 32, 0.08);
+}
+.thread-item {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.thread-item.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.messages {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+}
+.message {
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+.message.assistant {
+  background: #f8e6da;
+}
+.message.user {
+  background: #f8f4ec;
+}
+.composer span {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 120px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  padding: 12px;
+  font: inherit;
+  background: #fffdf8;
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font: inherit;
+  cursor: pointer;
+  background: var(--accent);
+  color: white;
+}
+button.secondary {
+  background: #6d6558;
+}
+.events {
+  padding-left: 18px;
+}
+@media (max-width: 960px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
