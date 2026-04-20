@@ -2,28 +2,42 @@
 
 ## Purpose
 
-This delivery implements a local and deployable RL environment that mimics Anthropic's core chat workflow.
+This project contains a greenfield RL environment that approximates a core Anthropic task-handling workflow. Agents interact with a seeded queue of tasks, inspect state, write drafts, submit responses, and reset the environment deterministically.
 
-## Architecture
+## Layout
 
-- `app.py` serves the OpenAPI-backed endpoints and the static app.
-- `data/seed_state.json` defines the seeded baseline that reset restores.
-- `static/` contains the frontend for list, detail, compose, and reset flows.
-- `api/openapi.yaml` owns the public environment contract.
+- `app.py`: local HTTP server, API implementation, and static file serving
+- `api/openapi.yaml`: source of truth for the environment API
+- `data/seed_state.json`: deterministic seed data and reset baseline
+- `templates/index.html`: minimal UI for local inspection
+- `static/style.css`: local styling
 
-## Commands
+## Local Commands
 
-- Run locally: `python3 app.py`
-- Smoke test: `curl http://127.0.0.1:8000/api/state`
-- Reset state: `curl -X POST http://127.0.0.1:8000/api/reset`
+- Run server: `python3 app.py`
+- Manual validation: open `http://127.0.0.1:8000`, draft a response, submit it, then call reset
+
+## Test Commands
+
+- Manual smoke test for bootstrap:
+  - load queue
+  - open a task
+  - save a draft
+  - submit response
+  - reset state
+
+## OpenAPI Ownership
+
+Any API change must be reflected in `api/openapi.yaml` before implementation is considered complete.
+
+## Reset / Restore Behavior
+
+- The seed state in `data/seed_state.json` is the canonical restore source.
+- `POST /api/reset` restores in-memory state from that seed.
+- Every mutating action updates explicit task status fields so the state is replayable and inspectable.
 
 ## Agent Rules
 
-- Keep the OpenAPI contract aligned with the implementation.
-- Every user-visible mutation must create an event and remain restorable via reset.
-- Preserve seeded entities so demos and evaluations are deterministic.
-- Prefer additive changes to the environment state model over ad hoc UI-only behavior.
-
-## Deployment
-
-Deploy the app to Vercel as a Python project or wrap it behind a minimal ASGI/WSGI entrypoint if required by the platform.
+- Keep the environment deterministic.
+- Preserve a restorable state transition for every action.
+- Prefer standard-library Python unless a clear dependency is necessary.
